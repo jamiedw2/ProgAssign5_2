@@ -35,5 +35,10 @@ StormData_trimmed$EVTYPE[grep("FLASH", StormData_trimmed$EVTYPE)] <- "FLASH FLOO
 StormData_trimmed$EVTYPE[grep("COASTAL FLOOD|CSTL", StormData_trimmed$EVTYPE)] <-
         "COASTAL FLOOD"
 StormData_trimmed$EVTYPE[grep("STRONG WIND", StormData_trimmed$EVTYPE)] <- "STRONG WIND"
+StormData_trimmed$EVTYPE[grep("FIRE", StormData_trimmed$EVTYPE)] <- "WILDFIRE"
+StormData_trimmed$EVTYPE[grep("RIP CURRENT", StormData_trimmed$EVTYPE)] <- "RIP CURRENT"
+StormData_trimmed$EVTYPE[grep("WINTER WEATHER", StormData_trimmed$EVTYPE)] <- "WINTER WEATHER"
+StormData_trimmed$EVTYPE[grep("EXTREME COLD|EXTREME WINDCHILL", StormData_trimmed$EVTYPE)] <-
+        "EXTREME COLD/EXTREME WINDCHILL"
 ```
 

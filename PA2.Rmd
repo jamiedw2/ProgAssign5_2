@@ -34,5 +34,6 @@ StormData_trimmed$EVTYPE[grep("^TSTM|^THUNDERSTORM|^ TSTM", StormData_trimmed$EV
 StormData_trimmed$EVTYPE[grep("FLASH", StormData_trimmed$EVTYPE)] <- "FLASH FLOOD"
 StormData_trimmed$EVTYPE[grep("COASTAL FLOOD|CSTL", StormData_trimmed$EVTYPE)] <-
         "COASTAL FLOOD"
+StormData_trimmed$EVTYPE[grep("STRONG WIND", StormData_trimmed$EVTYPE)] <- "STRONG WIND"
 ```
 

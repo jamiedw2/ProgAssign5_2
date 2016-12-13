@@ -1,0 +1,38 @@
+---
+title: "Human and economic costs of severe weather events"
+author: "James Whitehead"
+date: "13 December 2016"
+output: html_document
+---
+
+##Data Processing
+
+#Loading the data:
+
+```{r LoadData, cache=TRUE}
+fileURL <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
+download.file(fileURL, "StormData.csv.bz2")
+StormData <- read.csv("StormData.csv.bz2")
+StormData$BGN_DATE <- as.Date(StormData$BGN_DATE, "%m/%d/%Y")
+```
+
+#Processing the data
+
+Only data since Jan 1996 are considered in order to include all event types in the analysis, and avoid skewing towards those recorded in ealier years. Events were also removed where no injuries, fatalities or damage were incurred.
+```{r ProcessData, cache=TRUE}
+StormData_trimmed <- StormData[StormData$BGN_DATE > as.Date("1996-01-01"), ]
+anyCost <- with(StormData_trimmed, FATALITIES > 0 | INJURIES > 0 | PROPDMG > 0 | CROPDMG > 0)
+StormData_trimmed <- StormData_trimmed[anyCost, ]
+StormData_trimmed <- subset(StormData_trimmed, select=c("BGN_DATE", "STATE", "EVTYPE", "MAG",
+                "FATALITIES", "INJURIES", "PROPDMG", "PROPDMGEXP", "CROPDMG", "CROPDMGEXP"))
+```
+
+```{r SortEventType}
+StormData_trimmed$EVTYPE <- toupper(StormData_trimmed$EVTYPE)
+StormData_trimmed$EVTYPE[grep("^TSTM|^THUNDERSTORM|^ TSTM", StormData_trimmed$EVTYPE)] <-
+        "THUNDERSTORM WIND"
+StormData_trimmed$EVTYPE[grep("FLASH", StormData_trimmed$EVTYPE)] <- "FLASH FLOOD"
+StormData_trimmed$EVTYPE[grep("COASTAL FLOOD|CSTL", StormData_trimmed$EVTYPE)] <-
+        "COASTAL FLOOD"
+```
+

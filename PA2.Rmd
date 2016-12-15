@@ -9,6 +9,11 @@ output: html_document
 
 #Loading the data:
 
+```{r}
+library(dplyr)
+library(plyr)
+```
+
 ```{r LoadData, cache=TRUE}
 fileURL <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
 download.file(fileURL, "StormData.csv.bz2")
@@ -24,9 +29,18 @@ StormData_trimmed <- StormData[StormData$BGN_DATE > as.Date("1996-01-01"), ]
 anyCost <- with(StormData_trimmed, FATALITIES > 0 | INJURIES > 0 | PROPDMG > 0 | CROPDMG > 0)
 StormData_trimmed <- StormData_trimmed[anyCost, ]
 StormData_trimmed <- subset(StormData_trimmed, select=c("BGN_DATE", "STATE", "EVTYPE", "MAG",
-                "FATALITIES", "INJURIES", "PROPDMG", "PROPDMGEXP", "CROPDMG", "CROPDMGEXP"))
+        "FATALITIES", "INJURIES", "PROPDMG", "PROPDMGEXP", "CROPDMG", "CROPDMGEXP"))
 ```
-
+The exponents of crop and property damage are converted to values, and used to multiply to get total crop and property damage, which are added together to get total damage in USD.
+```{r}
+PropExp <- as.numeric(as.character(mapvalues(StormData_trimmed$PROPDMGEXP,
+        c("K", "M", "B", ""), c("1000", "1000000", "1000000000", "1"))))
+CropExp <- as.numeric(as.character(mapvalues(StormData_trimmed$CROPDMGEXP,
+        c("K", "M", "B", ""), c("1000", "1000000", "1000000000", "1"))))
+StormData_trimmed$TOTALDMGVAL <- with(StormData_trimmed,
+        (PROPDMG * PropExp) + (CROPDMG * CropExp))
+```
+The same event type can be entered differently for different rows; here the names of some of the more common events are renamed so they can be grouped properly.
 ```{r SortEventType}
 StormData_trimmed$EVTYPE <- toupper(StormData_trimmed$EVTYPE)
 StormData_trimmed$EVTYPE[grep("^TSTM|^THUNDERSTORM|^ TSTM", StormData_trimmed$EVTYPE)] <-
@@ -40,5 +54,14 @@ StormData_trimmed$EVTYPE[grep("RIP CURRENT", StormData_trimmed$EVTYPE)] <- "RIP 
 StormData_trimmed$EVTYPE[grep("WINTER WEATHER", StormData_trimmed$EVTYPE)] <- "WINTER WEATHER"
 StormData_trimmed$EVTYPE[grep("EXTREME COLD|EXTREME WINDCHILL", StormData_trimmed$EVTYPE)] <-
         "EXTREME COLD/EXTREME WINDCHILL"
+StormData_trimmed$EVTYPE[grep("HIGH WIND", StormData_trimmed$EVTYPE)] <- "HIGH WIND"
+StormData_trimmed$EVTYPE[grep("STRONG WIND", StormData_trimmed$EVTYPE)] <- "STRONG WIND"
+StormData_trimmed$EVTYPE[grep("HURRICANE", StormData_trimmed$EVTYPE)] <- "HURRICANE/TYPHOON"
+StormData_trimmed$EVTYPE[grep("HEAVY SNOW|EXCESSIVE SNOW", StormData_trimmed$EVTYPE)] <-
+        "HEAVY SNOW"
+StormData_trimmed$EVTYPE[grep("HEAT WAVE", StormData_trimmed$EVTYPE)] <- "HEAT"
+StormData_trimmed$EVTYPE[grep("STORM SURGE", StormData_trimmed$EVTYPE)] <- "STORM SURGE"
+StormData_trimmed$EVTYPE[grep("FROST|FREEZE", StormData_trimmed$EVTYPE)] <- "FROST/FREEZE"
+StormData_trimmed$EVTYPE[grep("HEAVY RAIN", StormData_trimmed$EVTYPE)] <- "HEAVY RAIN"
 ```
 

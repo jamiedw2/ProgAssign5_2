@@ -5,13 +5,14 @@ date: "13 December 2016"
 output: html_document
 ---
 
-##Data Processing
+#Data Processing
 
-#Loading the data:
+##Loading the data:
 
 ```{r}
-library(dplyr)
 library(plyr)
+library(dplyr)
+library(ggplot2)
 ```
 
 ```{r LoadData, cache=TRUE}
@@ -21,9 +22,9 @@ StormData <- read.csv("StormData.csv.bz2")
 StormData$BGN_DATE <- as.Date(StormData$BGN_DATE, "%m/%d/%Y")
 ```
 
-#Processing the data
+##Processing the data
 
-Only data since Jan 1996 are considered in order to include all event types in the analysis, and avoid skewing towards those recorded in ealier years. Events were also removed where no injuries, fatalities or damage were incurred.
+Only data since Jan 1996 are considered in order to include all event types in the analysis, and avoid skewing towards those recorded in ealier years. Events were also removed where no injuries, fatalities or damage were incurred:
 ```{r ProcessData, cache=TRUE}
 StormData_trimmed <- StormData[StormData$BGN_DATE > as.Date("1996-01-01"), ]
 anyCost <- with(StormData_trimmed, FATALITIES > 0 | INJURIES > 0 | PROPDMG > 0 | CROPDMG > 0)
@@ -31,7 +32,7 @@ StormData_trimmed <- StormData_trimmed[anyCost, ]
 StormData_trimmed <- subset(StormData_trimmed, select=c("BGN_DATE", "STATE", "EVTYPE", "MAG",
         "FATALITIES", "INJURIES", "PROPDMG", "PROPDMGEXP", "CROPDMG", "CROPDMGEXP"))
 ```
-The exponents of crop and property damage are converted to values, and used to multiply to get total crop and property damage, which are added together to get total damage in USD.
+The exponents of crop and property damage are converted to values, and used to multiply to get total crop and property damage, which are added together to get total damage in USD:
 ```{r}
 PropExp <- as.numeric(as.character(mapvalues(StormData_trimmed$PROPDMGEXP,
         c("K", "M", "B", ""), c("1000", "1000000", "1000000000", "1"))))
@@ -40,7 +41,7 @@ CropExp <- as.numeric(as.character(mapvalues(StormData_trimmed$CROPDMGEXP,
 StormData_trimmed$TOTALDMGVAL <- with(StormData_trimmed,
         (PROPDMG * PropExp) + (CROPDMG * CropExp))
 ```
-The same event type can be entered differently for different rows; here the names of some of the more common events are renamed so they can be grouped properly.
+The same event type can be entered differently for different rows; here, the names of some of the more common events are standardised so they can be grouped properly:
 ```{r SortEventType}
 StormData_trimmed$EVTYPE <- toupper(StormData_trimmed$EVTYPE)
 StormData_trimmed$EVTYPE[grep("^TSTM|^THUNDERSTORM|^ TSTM", StormData_trimmed$EVTYPE)] <-
@@ -64,4 +65,27 @@ StormData_trimmed$EVTYPE[grep("STORM SURGE", StormData_trimmed$EVTYPE)] <- "STOR
 StormData_trimmed$EVTYPE[grep("FROST|FREEZE", StormData_trimmed$EVTYPE)] <- "FROST/FREEZE"
 StormData_trimmed$EVTYPE[grep("HEAVY RAIN", StormData_trimmed$EVTYPE)] <- "HEAVY RAIN"
 ```
+Finally the fatalities injuries and economic costs are summed for each event type:
+```{r}
+StormData_sum <- summarise(group_by(StormData_trimmed, EVTYPE), Fatalities=sum(FATALITIES),
+        Injuries=sum(INJURIES), Damage=sum(TOTALDMGVAL))
+```
 
+#Results
+
+##1. Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
+
+```{r}
+plot_Fat <- ggplot(arrange(StormData_sum, desc(Fatalities))[1:10,],
+        aes(reorder(EVTYPE, -Fatalities), Fatalities)) +
+        geom_bar(stat="identity", col="black", fill="red") +
+        theme(axis.text.x = element_text(angle = -30, hjust = 0)) +
+        labs(title="Fatalities by event type in the US 1996-2016", x="Event type")
+plot_Inj <- ggplot(arrange(StormData_sum, desc(Injuries))[1:10,],
+        aes(reorder(EVTYPE, -Injuries), Injuries)) +
+        geom_bar(stat="identity", col="black", fill="red") +
+        theme(axis.text.x = element_text(angle = -30, hjust = 0)) +
+        labs(title="Injuries by event type in the US 1996-2016", x="Event type")
+plot_Fat
+plot_Inj
+```

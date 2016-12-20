@@ -5,6 +5,11 @@ date: "13 December 2016"
 output: html_document
 ---
 
+#Synopsis
+
+In this report, the U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database is analysed to assess which are the most damaging event types in terms of human and economic costs. The data were accessed at: https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2 on the 13th December 2016. Further information may be found [here](https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf) and [here](https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2FNCDC%20Storm%20Events-FAQ%20Page.pdf).
+Only data since January 1996 are considered here, as these represent the most complete dataset in terms of event types. The data are cleaned in order to get the total costs, and to standardise the names of the event types (which were often entered in different ways). Finally the 10 most damaging event types in terms of fatalities, injuries, and economic cost, respectively, are considered.
+
 #Data Processing
 
 ##Loading the data:
@@ -15,7 +20,7 @@ library(dplyr)
 library(ggplot2)
 ```
 
-```{r LoadData, cache=TRUE}
+```{r LoadData}
 fileURL <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
 download.file(fileURL, "StormData.csv.bz2")
 StormData <- read.csv("StormData.csv.bz2")
@@ -25,7 +30,7 @@ StormData$BGN_DATE <- as.Date(StormData$BGN_DATE, "%m/%d/%Y")
 ##Processing the data
 
 Only data since Jan 1996 are considered in order to include all event types in the analysis, and avoid skewing towards those recorded in ealier years. Events were also removed where no injuries, fatalities or damage were incurred:
-```{r ProcessData, cache=TRUE}
+```{r ProcessData}
 StormData_trimmed <- StormData[StormData$BGN_DATE > as.Date("1996-01-01"), ]
 anyCost <- with(StormData_trimmed, FATALITIES > 0 | INJURIES > 0 | PROPDMG > 0 | CROPDMG > 0)
 StormData_trimmed <- StormData_trimmed[anyCost, ]
@@ -65,10 +70,10 @@ StormData_trimmed$EVTYPE[grep("STORM SURGE", StormData_trimmed$EVTYPE)] <- "STOR
 StormData_trimmed$EVTYPE[grep("FROST|FREEZE", StormData_trimmed$EVTYPE)] <- "FROST/FREEZE"
 StormData_trimmed$EVTYPE[grep("HEAVY RAIN", StormData_trimmed$EVTYPE)] <- "HEAVY RAIN"
 ```
-Finally the fatalities injuries and economic costs are summed for each event type:
+Finally the fatalities injuries and economic costs are summed for each event type. Total damage is represented as billions of USD:
 ```{r}
 StormData_sum <- summarise(group_by(StormData_trimmed, EVTYPE), Fatalities=sum(FATALITIES),
-        Injuries=sum(INJURIES), Damage=sum(TOTALDMGVAL))
+        Injuries=sum(INJURIES), Damage=sum(TOTALDMGVAL)/1e9)
 ```
 
 #Results
@@ -80,12 +85,32 @@ plot_Fat <- ggplot(arrange(StormData_sum, desc(Fatalities))[1:10,],
         aes(reorder(EVTYPE, -Fatalities), Fatalities)) +
         geom_bar(stat="identity", col="black", fill="red") +
         theme(axis.text.x = element_text(angle = -30, hjust = 0)) +
+        theme(plot.margin = unit(c(5.5,40,5.5,5.5),"points")) +
         labs(title="Fatalities by event type in the US 1996-2016", x="Event type")
 plot_Inj <- ggplot(arrange(StormData_sum, desc(Injuries))[1:10,],
         aes(reorder(EVTYPE, -Injuries), Injuries)) +
         geom_bar(stat="identity", col="black", fill="red") +
         theme(axis.text.x = element_text(angle = -30, hjust = 0)) +
+        theme(plot.margin = unit(c(5.5,40,5.5,5.5),"points")) +
         labs(title="Injuries by event type in the US 1996-2016", x="Event type")
 plot_Fat
 plot_Inj
 ```
+
+In the figures above, the 10 most destructive event types in terms of fatalities and injuries, respectively, are selected and total numbers of fatalities/injuries since 1996 are shown.
+
+In terms of fatalities, Excessive Heat and Tornadoes are the most destructive, with Tornadoes also causing more injuries than any other event type.
+
+##2. Across the United States, which types of events have the greatest economic consequences?
+
+```{r}
+ggplot(arrange(StormData_sum, desc(Damage))[1:10,],
+        aes(reorder(EVTYPE, -Damage), Damage)) +
+        geom_bar(stat="identity", col="black", fill="green") +
+        theme(axis.text.x = element_text(angle = -30, hjust = 0)) +
+        theme(plot.margin = unit(c(5.5,40,5.5,5.5),"points")) +
+        labs(title="Economic damage by event type in the US 1996-2016",
+              x="Event type", y="Economic cost (Billions USD)")
+```
+
+This figure shows that flood caused the most economic damage (property and crops combined) over the period since 1996.
